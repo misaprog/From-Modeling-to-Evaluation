@@ -448,11 +448,9 @@ bamboo_test_cuisines = bamboo_test["cuisine"]                   # 料理ジャ�
 #### 解説
 
 bamboo_test は各料理ジャンル（cuisine）ごとに30件ずつランダムに抽出したデータフレームです。
-
 bamboo_test["cuisine"] で、そのデータの中の「料理ジャンル」列だけを取り出します。
 
 .value_counts() は、その列に含まれる値（ここでは料理ジャンル名）がそれぞれいくつあるかをカウントして、
-
 各ジャンルごとの件数を降順にまとめて表示します。
 
 つまり
