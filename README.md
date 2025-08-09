@@ -292,29 +292,69 @@ import itertools                              # 混同行列の可視化など�
    * 特に混同行列のプロット時に座標の組み合わせ生成に使われます。
 
 ---
-### 使用ライブラリについて
+#### [bamboo_tree] アジア料理とインド料理のみ
 
-- `scikit-learn` の `tree` モジュールを使い、決定木モデルを構築します。
-- モデルの性能評価に `accuracy_score`（正解率）と `confusion_matrix`（混同行列）を利用します。
-- 可視化には `matplotlib.pyplot` を使用します。
-- ローカル環境であれば、`graphviz` ライブラリを使って決定木をより詳細に可視化可能ですが、
-  ここではscikit-learn標準の `plot_tree` メソッドを使っています。
-- その他、ループ処理などの補助に `itertools` をインポートしています。
+ここでは、アジア料理（韓国料理、日本料理、中国料理、タイ料理）とインド料理のレシピのみを対象とした決定木を作成しています。この操作を行う理由は、データが特定の料理または複数の料理グループ（今回の場合はアメリカ料理）に偏っている場合、決定木がうまく動作しないためです。アメリカ料理を分析から除外するか、データの異なるサブセットのみを対象に決定木を構築することもできます。ここでは2つ目の解決策を採用します。
+
+アジア料理とインド料理に関するデータを使用して決定木を作成し、決定木に bamboo_tree という名前を付けます。
+
+---
+### アジア・インド料理のサブセット抽出と決定木モデルの学習
+
+- `recipes` データフレームから、韓国、日本、中国、タイ、インドの5つの料理カテゴリーだけを抽出しています。
+- `cuisines` は料理のラベル（ターゲット変数）で、`ingredients` は料理の材料情報（特徴量）です。
+- `DecisionTreeClassifier` クラスを使い、深さを3に制限した決定木モデルを作成しています。
+- `fit` メソッドで材料データを入力し、対応する料理名を学習させています。
 
 ```python
-from sklearn import tree
-from sklearn.metrics import accuracy_score, confusion_matrix
-import matplotlib.pyplot as plt
+asian_indian_recipes = recipes[recipes.cuisine.isin(["korean", "japanese", "chinese", "thai", "indian"])]
+cuisines = asian_indian_recipes["cuisine"]
+ingredients = asian_indian_recipes.iloc[:,1:]
 
-# graphvizを使う場合は下記のコメントを外してインストールしてください
-# !conda install python-graphviz --yes
-# from sklearn.tree import export_graphviz
+bamboo_tree = tree.DecisionTreeClassifier(max_depth=3)
+bamboo_tree.fit(ingredients, cuisines)
 
-import itertools
+print("Decision tree model saved to bamboo_tree!")
 
 ```
+### 決定木をプロットし、決定木がどのように見えるかを確認しましょう。
 
+### 決定木の可視化
 
+- `graphviz` ライブラリを使うと詳細な決定木を画像ファイルとして出力できますが、ここではscikit-learnの `plot_tree` メソッドを利用しています。
+- `plot_tree` では、特徴量名やクラス名を表示し、ノードを色分け、ノードIDを表示してわかりやすく可視化しています。
+- `plt.figure(figsize=(40,20))` で図のサイズを指定し、見やすい大きさに調整しています。
 
+```python
+# graphvizでの可視化はコメントアウト
+# export_graphviz(bamboo_tree,
+#                 feature_names=list(ingredients.columns.values),
+#                 out_file="bamboo_tree.dot",
+#                 class_names=np.unique(cuisines),
+#                 filled=True,
+#                 node_ids=True,
+#                 special_characters=True,
+#                 impurity=False,
+#                 label="all",
+#                 leaves_parallel=False)
 
+# with open("bamboo_tree.dot") as bamboo_tree_image:
+#     bamboo_tree_graph = bamboo_tree_image.read()
+# graphviz.Source(bamboo_tree_graph)
+
+plt.figure(figsize=(40,20))
+_ = tree.plot_tree(
+    bamboo_tree,
+    feature_names=list(ingredients.columns.values),
+    class_names=np.unique(cuisines),
+    filled=True,
+    node_ids=True,
+    impurity=False,
+    label="all",
+    fontsize=20,
+    rounded=True
+)
+plt.show()
+
+```
 
