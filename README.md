@@ -534,5 +534,195 @@ bamboo_train は、元のデータ bamboo からテスト用のサンプル（ba
 もし元のデータに各ジャンル100件ずつあった場合、
 テストに30件ずつ抜いているので、訓練データは70件ずつになるはずです。
 
+---
+### トレーニング セット bamboo_train を使用して決定木を構築し、生成されたツリーに予測用の bamboo_train_tree という名前を付けます。
+
+#### 決定木モデルの学習と保存
+
+以下のコードは、決定木（Decision Tree）分類器を使って、料理レシピの材料情報から料理ジャンルを予測するモデルを学習させる処理です。
+
+```python
+from sklearn import tree
+
+# 深さを15に制限した決定木分類器のインスタンスを作成
+bamboo_train_tree = tree.DecisionTreeClassifier(max_depth=15)
+
+# 学習用の材料データ（特徴量）と料理ジャンルラベルを使ってモデルを学習
+bamboo_train_tree.fit(bamboo_train_ingredients, bamboo_train_cuisines)
+
+print("Decision tree model saved to bamboo_train_tree!")
+```
+
+#### 処理のポイント
+
+* `DecisionTreeClassifier(max_depth=15)`
+  決定木モデルを作成。`max_depth=15` は木の深さ（分岐の最大数）を制限し、過学習を抑えるためのパラメータです。
+
+* `fit(X, y)`
+  特徴量 `X`（ここでは材料情報）とラベル `y`（料理ジャンル）を渡してモデルを学習します。
+
+* `bamboo_train_tree`
+  学習済みの決定木モデルのオブジェクト。この後の予測や評価に利用します。
+
+* `print`文は処理完了のメッセージを表示しています。
+
+---
+### 決定木をプロットして調べてみましょう。
+
+#### 決定木の可視化
+
+以下のコードは、学習済みの決定木モデル（`bamboo_train_tree`）を視覚的に表示する処理です。
+ツリーの構造や分岐の内容を確認するのに役立ちます。
+
+```python
+from sklearn import tree
+import matplotlib.pyplot as plt
+import numpy as np
+
+# グラフの表示サイズを指定（横40インチ、縦20インチ）
+plt.figure(figsize=(40, 20))
+
+# 決定木の可視化
+_ = tree.plot_tree(
+    bamboo_train_tree,
+    feature_names=list(bamboo_train_ingredients.columns.values),  # 特徴量名（材料の名前）
+    class_names=np.unique(bamboo_train_cuisines),                 # クラス名（料理ジャンル）
+    filled=True,      # ノードの色をクラス別に塗り分け
+    node_ids=True,    # ノードのIDを表示
+    impurity=False,   # 不純度（ジニ係数など）を表示しない
+    label="all",      # すべてのラベルを表示（クラス名・サンプル数など）
+    fontsize=10,      # フォントサイズ
+    rounded=True      # ノードの角を丸くする
+)
+
+# グラフを表示
+plt.show()
+```
+
+#### 補足説明
+
+* `plt.figure(figsize=(40,20))`
+  大きな決定木でも見やすいように図のサイズを大きく設定しています。
+
+* `tree.plot_tree()` はscikit-learnの関数で、モデルの分岐条件や分類結果を視覚化できます。
+
+* コメントアウトされている部分は、Graphvizを使って`.dot`ファイルを作成し、より詳細なツリーを描画する方法の例です。
+  こちらは環境によってはセットアップが必要なため、今回はmatplotlibを使った方法を紹介しています。
+
+
+ツリーをより深く定義したので、より多くの決定ノードが生成されます。
+
+---
+### それでは、テストデータでモデルをテストしてみましょう。
+
+GitHubのREADME用にわかりやすく説明した例です：
+
+---
+
+## 決定木モデルを使った予測
+
+```python
+# 学習済み決定木モデルにテストデータの材料情報を入力し、料理ジャンルを予測
+bamboo_pred_cuisines = bamboo_train_tree.predict(bamboo_test_ingredients)
+```
+
+### 処理のポイント
+
+* `predict()` メソッドは、モデルに特徴量（ここでは`bamboo_test_ingredients`）を渡して、その入力データに対する予測結果（ラベル）を返します。
+
+* 返される `bamboo_pred_cuisines` は、テストデータのそれぞれのレシピがどの料理ジャンルに分類されるかの予測結果の配列（またはリスト）です。
+
+* この結果は、モデルの性能評価や実際の分類に利用されます。
+
+決定木が各レシピの料理の種類をどれだけ正確に判別できるかを定量化するために、混同行列を作成します。混同行列は、各料理のレシピがどれだけ正しく分類されているかを分かりやすくまとめたものです。また、どの料理が他のどの料理と混同されているかについても明らかにします。
+
+---
+#### それでは、決定木がbamboo_testのレシピをどれだけ正確に分類できるかを示す混同行列を作成しましょう。
+
+#### 混同行列によるモデル評価の可視化
+
+このコードは、決定木モデルの予測結果と実際のラベルを比較し、混同行列（Confusion Matrix）を作成して可視化する処理です。
+混同行列はモデルの分類性能を詳細に分析するのに役立ちます。
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import itertools
+
+# 予測と正解のラベルのユニークなクラス一覧を取得
+test_cuisines = np.unique(bamboo_test_cuisines)
+
+# 実際のラベルと予測ラベルから混同行列を作成（行：真のクラス、列：予測クラス）
+bamboo_confusion_matrix = confusion_matrix(bamboo_test_cuisines, bamboo_pred_cuisines, labels=test_cuisines)
+
+title = 'Bamboo Confusion Matrix'
+cmap = plt.cm.Blues  # カラーマップ（青系）
+
+plt.figure(figsize=(8, 6))
+
+# 混同行列をパーセント表示に変換（行ごとの割合に正規化）
+bamboo_confusion_matrix = (
+    bamboo_confusion_matrix.astype('float') / bamboo_confusion_matrix.sum(axis=1)[:, np.newaxis]
+) * 100
+
+# 混同行列を画像として表示
+plt.imshow(bamboo_confusion_matrix, interpolation='nearest', cmap=cmap)
+plt.title(title)
+plt.colorbar()
+
+# 軸ラベルを設定
+tick_marks = np.arange(len(test_cuisines))
+plt.xticks(tick_marks, test_cuisines, rotation=45)
+plt.yticks(tick_marks, test_cuisines)
+
+# 各マスに数値（パーセント）を表示。色は値に応じて白か黒に切り替え
+fmt = '.2f'
+thresh = bamboo_confusion_matrix.max() / 2.
+for i, j in itertools.product(range(bamboo_confusion_matrix.shape[0]), range(bamboo_confusion_matrix.shape[1])):
+    plt.text(j, i, format(bamboo_confusion_matrix[i, j], fmt),
+             horizontalalignment="center",
+             color="white" if bamboo_confusion_matrix[i, j] > thresh else "black")
+
+plt.tight_layout()
+plt.ylabel('True label (正解ラベル)')
+plt.xlabel('Predicted label (予測ラベル)')
+
+plt.show()
+```
+
+#### ポイント
+
+* `confusion_matrix()` は、実際のラベルと予測ラベルの比較から、分類の正解・誤分類のパターンを行列形式で表現します。
+
+* 行ごとに正規化してパーセント表示にしているため、各クラスの中でどれだけ正しく予測されたかを割合で確認できます。
+
+* `plt.imshow()` で行列をヒートマップ表示し、視覚的に誤分類の傾向を把握しやすくしています。
+
+* 各セルに数値を描画することで、詳細な数値も一目でわかるようにしています。
+
+上記のコードを実行すると、次のような混同行列が得られます。
+
+---
+行はデータセットの実際の料理を表し、列は予測された料理を表します。各行の合計は100%になるはずです。この混同行列から、以下のことがわかります。
+
+混同行列の1行目では、bamboo_test内の中華料理のレシピの43%が決定木によって正しく分類されましたが、33％の中華料理レシピは韓国料理として誤分類され、7%はインド料理として誤分類されました。
+
+インドの行では、bamboo_test内のインド料理のレシピの83%が決定木によって正しく分類されましたが、0%のインド料理レシピは中華料理として誤分類され、10%は韓国料理として誤分類され、6.7%はタイ料理として誤分類されました。
+
+決定木はトレーニングセット内のデータポイントをランダムにサンプリングして作成されるため、同じトレーニングセットを使用しても、毎回同じ結果が得られない可能性があることに注意してください。ただし、パフォーマンスは同等であるはずです。そのため、混同行列の数値が上記と多少異なっていても心配する必要はありません。
+
+---
+★参照混同行列を使用して、決定木によって正しく分類された日本のレシピはいくつありますか?  53.33%
+
+★また、参照混同行列を使用した場合、韓国のレシピが日本のレシピとして誤分類された数はいくつでしょうか?　6.67%
+
+★参照混同行列を使用した決定木によって正しく分類されたレシピの数が最も少ない料理は何ですか?　中華料理
+
+
+
+
+
+
 
 
