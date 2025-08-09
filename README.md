@@ -444,7 +444,10 @@ bamboo_test_cuisines = bamboo_test["cuisine"]                   # 料理ジャ�
 
 ```
 ### 各料理に30種類のレシピがあることを確認します。
-
+```
+# check that we have 30 recipes from each cuisine
+bamboo_test["cuisine"].value_counts()
+```
 #### 解説
 
 bamboo_test は各料理ジャンル（cuisine）ごとに30件ずつランダムに抽出したデータフレームです。
@@ -455,6 +458,5 @@ bamboo_test["cuisine"] で、そのデータの中の「料理ジャンル」列
 
 つまり
 このコードは、「本当に各ジャンルから30件ずつ抽出できているか？」を確認するために使います。
-
 表示結果で、すべてのジャンルの値が30になっていれば、期待通りにサンプリングできていることがわかります。
 
