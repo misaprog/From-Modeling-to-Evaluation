@@ -380,7 +380,7 @@ bamboo = recipes[recipes.cuisine.isin(["korean", "japanese", "chinese", "thai", 
 
 ```
 
-# 説明
+#### 説明
 
 - `recipes`：料理データのPandas DataFrame。
 - `recipes.cuisine.isin([...])`：`cuisine`列の値がリスト内のいずれかに該当するかを判定する条件式。
@@ -390,3 +390,72 @@ bamboo = recipes[recipes.cuisine.isin(["korean", "japanese", "chinese", "thai", 
 
 ---
 ### 次に、各料理にいくつのレシピが存在するかを確認します。
+---
+```
+bamboo["cuisine"].value_counts()
+```
+#### 説明
+
+- `bamboo["cuisine"]`：抽出済みのDataFrame `bamboo` の `cuisine` 列。
+- `.value_counts()`：各料理ジャンルの出現頻度（件数）を降順で返すメソッド。
+
+この処理は、指定したアジア料理（韓国、日本、中国、タイ、インド）の各ジャンルが、データ内に何件存在するかを集計しています。
+
+---
+
+### 各料理から 30 個のレシピを削除してテスト セットとして使用し、このテスト セットに bamboo_test という名前を付けます。
+```
+# set sample size
+sample_n = 30
+
+```
+#### 説明
+
+- `sample_n = 30` は、後続の処理で使用するサンプルのサイズ（抽出件数）を30に設定するための変数定義です。
+- 例えば、データの一部をランダムに抽出する際などに利用します。
+
+---
+### 次に、各料理からランダムに選ばれた30個のレシピを含むデータフレームを作成します。
+ 
+#### ポイント
+
+- `groupby("cuisine")` で料理ジャンルごとにデータをグループ化  
+- `sample(n=30, random_state=1234)` で各グループから30件をランダム抽出（シード固定で再現可能）  
+- `group_keys=False` によりグループ名（`cuisine`）をインデックスに含めない  
+- 抽出結果を `reset_index(drop=True)` でインデックスを振り直し  
+
+#### 分割処理
+
+- 抽出後のデータは材料情報とラベル（ジャンル名）を含むため、  
+  `.drop(columns=["cuisine"])` で材料部分のみのデータフレームを作成  
+- `.loc[:, "cuisine"]` で対応するジャンルラベルだけのシリーズを取得  
+
+#### コード例
+
+```python
+sample_n = 30
+
+bamboo_test = bamboo.groupby("cuisine", group_keys=False)\
+                    .sample(n=sample_n, random_state=1234)\
+                    .reset_index(drop=True)
+
+bamboo_test_ingredients = bamboo_test.drop(columns=["cuisine"])  # 材料データ
+bamboo_test_cuisines = bamboo_test["cuisine"]                   # 料理ジャンルラベル
+
+```
+### 各料理に30種類のレシピがあることを確認します。
+
+#### 解説
+
+bamboo_test は各料理ジャンル（cuisine）ごとに30件ずつランダムに抽出したデータフレームです。
+
+bamboo_test["cuisine"] で、そのデータの中の「料理ジャンル」列だけを取り出します。
+
+.value_counts() は、その列に含まれる値（ここでは料理ジャンル名）がそれぞれいくつあるかをカウントして、
+各ジャンルごとの件数を降順にまとめて表示します。
+
+つまり
+このコードは、「本当に各ジャンルから30件ずつ抽出できているか？」を確認するために使います。
+
+表示結果で、すべてのジャンルの値が30になっていれば、期待通りにサンプリングできていることがわかります。
+
