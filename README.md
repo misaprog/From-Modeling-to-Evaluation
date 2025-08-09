@@ -416,33 +416,50 @@ sample_n = 30
 
 ---
 ### 次に、各料理からランダムに選ばれた30個のレシピを含むデータフレームを作成します。
- 
-#### ポイント
 
-- `groupby("cuisine")` で料理ジャンルごとにデータをグループ化  
-- `sample(n=30, random_state=1234)` で各グループから30件をランダム抽出（シード固定で再現可能）  
-- `group_keys=False` によりグループ名（`cuisine`）をインデックスに含めない  
-- 抽出結果を `reset_index(drop=True)` でインデックスを振り直し  
+#### サンプルコードの説明
 
-#### 分割処理
-
-- 抽出後のデータは材料情報とラベル（ジャンル名）を含むため、  
-  `.drop(columns=["cuisine"])` で材料部分のみのデータフレームを作成  
-- `.loc[:, "cuisine"]` で対応するジャンルラベルだけのシリーズを取得  
-
-#### コード例
+このコードは、料理のレシピデータフレーム（`bamboo`）から各料理ジャンル（`cuisine`）ごとにランダムに30件のレシピを抽出する処理を行っています。
 
 ```python
-sample_n = 30
+import random
 
-bamboo_test = bamboo.groupby("cuisine", group_keys=False)\
-                    .sample(n=sample_n, random_state=1234)\
-                    .reset_index(drop=True)
+random.seed(1234)  # 乱数シードを固定して、結果の再現性を確保
 
-bamboo_test_ingredients = bamboo_test.drop(columns=["cuisine"])  # 材料データ
-bamboo_test_cuisines = bamboo_test["cuisine"]                   # 料理ジャンルラベル
+sample_n = 30  # 各ジャンルから抽出するレシピ数
 
+# 各cuisine（料理ジャンル）ごとにグループ化し、sample_n件ずつランダムに抽出
+bamboo_test = bamboo.groupby("cuisine", group_keys=False).apply(lambda x: x.sample(sample_n))
+
+# 抽出したレシピの材料データ（2列目以降）を取得
+bamboo_test_ingredients = bamboo_test.iloc[:, 1:]
+
+# 抽出したレシピの料理ジャンル（ラベル）を取得
+bamboo_test_cuisines = bamboo_test["cuisine"]
 ```
+
+### 処理のポイント
+
+* `random.seed(1234)`
+  乱数の種を固定することで、毎回同じレシピが抽出されるようにしています。結果の再現性を保つために重要です。
+
+* `groupby("cuisine")`
+  データを料理ジャンルごとにグループ化しています。
+
+* `.apply(lambda x: x.sample(sample_n))`
+  グループごとに指定した数（ここでは30件）のサンプルをランダム抽出しています。
+
+* `group_keys=False`
+  抽出後に元のインデックス構造を維持しやすくするためのオプションです。
+
+* `bamboo_test_ingredients`
+  レシピの材料情報のみを取り出したデータフレームです。機械学習の特徴量として使用することが想定されます。
+
+* `bamboo_test_cuisines`
+  対応する料理ジャンルのラベル情報です。学習・評価のラベルとして使用します。
+
+---
+
 ### 各料理に30種類のレシピがあることを確認します。
 ```
 # check that we have 30 recipes from each cuisine
