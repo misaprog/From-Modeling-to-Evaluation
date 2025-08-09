@@ -462,10 +462,14 @@ bamboo_test["cuisine"] で、そのデータの中の「料理ジャンル」列
 
 ---
 ### 次に、bamboo データ セットからテスト セットを削除してトレーニング セットを作成し、トレーニング セットに bamboo_train という名前を付けます。
+```
+bamboo_test_index = bamboo.index.isin(bamboo_test.index)
+bamboo_train = bamboo[~bamboo_test_index]
 
+bamboo_train_ingredients = bamboo_train.iloc[:,1:] # ingredients
+bamboo_train_cuisines = bamboo_train["cuisine"] # corresponding cuisines or labels
 
-
-
+```
 #### 1. bamboo_test_index = bamboo.index.isin(bamboo_test.index)
    
 bamboo.index.isin(bamboo_test.index) は、元データ bamboo の各行のインデックスが、
