@@ -57,6 +57,263 @@ import random  # 乱数生成やランダムな処理のためのrandomライブ
 
 ---
 
-もし希望があれば、この解説に\*\*実行例（DataFrame表示や乱数生成の例）\*\*も追加できます。
-そうするとGitHub READMEで見た人が「何のためのコードなのか」をより直感的に理解できます。
+## コードの解説
+
+```python
+from pyodide.http import pyfetch  # Pyodide環境でHTTPリクエストを行うためのモジュールをインポート
+
+# 非同期関数を定義：指定したURLからファイルをダウンロードして保存する
+async def download(url, filename):
+    response = await pyfetch(url)  # URLにアクセスしてデータを取得
+    if response.status == 200:     # HTTPステータスが200（成功）の場合のみ処理
+        with open(filename, "wb") as f:  # ローカルファイルをバイナリ書き込みモードで開く
+            f.write(await response.bytes())  # 取得したデータをファイルに書き込み
+
+# ダウンロードするCSVファイルのURL
+path = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DS0103EN-SkillsNetwork/labs/Module%202/recipes.csv"
+
+# Pyodide環境でデータをダウンロード（ローカル実行の場合はコメントアウト）
+await download(path, "recipes.csv")
+```
+
+---
+
+### このコードの役割
+
+1. **`pyfetch`**
+
+   * Pyodide用のHTTPリクエスト関数で、Web上からデータを取得するために使用します。
+   * 通常の`requests`ライブラリはPyodide環境では動かないため、代わりに使います。
+
+2. **非同期処理（`async` / `await`）**
+
+   * ネットワーク通信は時間がかかるため、非同期で処理を進めることで待機中も他の処理を行えるようにします。
+
+3. **`if response.status == 200`**
+
+   * ダウンロード成功（HTTPステータス200）を確認してからファイル保存する安全策です。
+
+4. **`with open(..., "wb")`**
+
+   * `"wb"`はバイナリモードで書き込みを行う設定。CSVなどの非テキストデータでも安全に保存できます。
+
+---
+
+💡 **補足**
+
+* このコードは\*\*Pyodide環境（例: JupyterLiteやブラウザ上のPython実行環境）\*\*向けです。
+* ローカルのJupyter Notebookや通常のPython環境では、`pyfetch`は使わず、代わりに`requests`や`urllib`を使用します。
+
+---
+そのエラーは、**`pyodide` がローカルのJupyter Notebook環境には存在しない**ことが原因です。
+
+`pyodide` は **JupyterLite やブラウザ上のPython（Pyodide環境）** でしか使えないモジュールなので、ローカルPCで動かすと `ModuleNotFoundError` になります。
+
+---
+
+### 💡 ローカル実行用のコードに書き換える方法
+
+ローカルや通常のJupyter Notebookでは、`requests` を使えば同じことができます。
+
+```python
+import requests
+
+# ダウンロード先のURL
+url = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DS0103EN-SkillsNetwork/labs/Module%202/recipes.csv"
+
+# データを取得
+response = requests.get(url)
+
+# HTTPステータス200（成功）の場合のみ保存
+if response.status_code == 200:
+    with open("recipes.csv", "wb") as f:
+        f.write(response.content)
+    print("Download completed: recipes.csv")
+else:
+    print("Failed to download file. Status code:", response.status_code)
+```
+
+---
+
+### 違い
+
+* **Pyodide版** → ブラウザ上（JupyterLiteやCourseraのノートブックなど）で動く。
+* **Requests版** → ローカルPCやAnaconda環境のJupyter Notebookで動く。
+
+---
+便宜上、すでにデータは IBM サーバー上に配置されているため、サーバーからデータをダウンロードし、recipes というデータフレームにデータを読み込みます。
+---
+
+```python
+recipes = pd.read_csv("recipes.csv")
+```
+
+* `pd.read_csv()` はPandasでCSVファイルを読み込む関数
+* `"recipes.csv"` は、さっきダウンロードしたファイル名
+* 読み込み結果は `recipes` という変数に保存されます（これがDataFrameになります）
+
+```python
+print("Data read into dataframe!")
+```
+
+* 単純に読み込み完了のメッセージを表示
+* コメントの `# takes about 30 seconds` は、環境によっては少し時間がかかることを示しています
+
+---
+
+## **① Jupyter Notebook用（コード内コメント付き）**
+
+```python
+# --- 列名の修正 ---
+# CSVの最初の列名が "cuisine" ではない可能性があるので、正しい名前に変更
+column_names = recipes.columns.values
+column_names[0] = "cuisine"
+recipes.columns = column_names
+
+# --- 料理名を小文字に変換 ---
+recipes["cuisine"] = recipes["cuisine"].str.lower()
+
+# --- 料理名を統一する ---
+# 国名や地域名が混在しているので、表記を統一
+recipes.loc[recipes["cuisine"] == "austria", "cuisine"] = "austrian"
+recipes.loc[recipes["cuisine"] == "belgium", "cuisine"] = "belgian"
+recipes.loc[recipes["cuisine"] == "china", "cuisine"] = "chinese"
+recipes.loc[recipes["cuisine"] == "canada", "cuisine"] = "canadian"
+recipes.loc[recipes["cuisine"] == "netherlands", "cuisine"] = "dutch"
+recipes.loc[recipes["cuisine"] == "france", "cuisine"] = "french"
+recipes.loc[recipes["cuisine"] == "germany", "cuisine"] = "german"
+recipes.loc[recipes["cuisine"] == "india", "cuisine"] = "indian"
+recipes.loc[recipes["cuisine"] == "indonesia", "cuisine"] = "indonesian"
+recipes.loc[recipes["cuisine"] == "iran", "cuisine"] = "iranian"
+recipes.loc[recipes["cuisine"] == "italy", "cuisine"] = "italian"
+recipes.loc[recipes["cuisine"] == "japan", "cuisine"] = "japanese"
+recipes.loc[recipes["cuisine"] == "israel", "cuisine"] = "jewish"
+recipes.loc[recipes["cuisine"] == "korea", "cuisine"] = "korean"
+recipes.loc[recipes["cuisine"] == "lebanon", "cuisine"] = "lebanese"
+recipes.loc[recipes["cuisine"] == "malaysia", "cuisine"] = "malaysian"
+recipes.loc[recipes["cuisine"] == "mexico", "cuisine"] = "mexican"
+recipes.loc[recipes["cuisine"] == "pakistan", "cuisine"] = "pakistani"
+recipes.loc[recipes["cuisine"] == "philippines", "cuisine"] = "philippine"
+recipes.loc[recipes["cuisine"] == "scandinavia", "cuisine"] = "scandinavian"
+recipes.loc[recipes["cuisine"] == "spain", "cuisine"] = "spanish_portuguese"
+recipes.loc[recipes["cuisine"] == "portugal", "cuisine"] = "spanish_portuguese"
+recipes.loc[recipes["cuisine"] == "switzerland", "cuisine"] = "swiss"
+recipes.loc[recipes["cuisine"] == "thailand", "cuisine"] = "thai"
+recipes.loc[recipes["cuisine"] == "turkey", "cuisine"] = "turkish"
+recipes.loc[recipes["cuisine"] == "vietnam", "cuisine"] = "vietnamese"
+recipes.loc[recipes["cuisine"] == "uk-and-ireland", "cuisine"] = "uk-and-irish"
+recipes.loc[recipes["cuisine"] == "irish", "cuisine"] = "uk-and-irish"
+
+# --- 50件未満のレシピは除外 ---
+recipes_counts = recipes["cuisine"].value_counts()
+cuisines_indices = recipes_counts > 50
+cuisines_to_keep = list(np.array(recipes_counts.index.values)[np.array(cuisines_indices)])
+recipes = recipes.loc[recipes["cuisine"].isin(cuisines_to_keep)]
+
+# --- Yes/No を 1/0 に変換 ---
+recipes = recipes.replace(to_replace="Yes", value=1)
+recipes = recipes.replace(to_replace="No", value=0)
+```
+
+---
+
+## **② GitHub README用（文章説明）**
+
+**データ前処理の流れ**
+
+1. **列名の修正**
+
+   * CSVの最初の列を `cuisine` に統一し、後の分析で使いやすくします。
+
+2. **文字の小文字化**
+
+   * 料理名（cuisine列）の文字をすべて小文字に変換し、大文字・小文字の違いによるデータの不一致を防ぎます。
+
+3. **料理名の統一**
+
+   * 国名や地域名が混在していたため、統一した表記（例：`austria` → `austrian`、`spain` / `portugal` → `spanish_portuguese`）に変換しました。
+
+4. **少数データの除外**
+
+   * レシピ数が50件未満の料理カテゴリーを除外し、モデル学習に必要なデータの安定性を確保します。
+
+5. **Yes/No の数値変換**
+
+   * 材料の有無を表す `Yes`/`No` を、それぞれ `1`/`0` に変換し、機械学習で使える形式にしました。
+
+---
+## データモデリング
+
+次に、決定木を構築するために、さらに多くのライブラリと依存関係をダウンロードしてインストールします。
+
+---
+
+## **コード解説**
+
+```python
+# 決定木モデルの構築に必要なライブラリをインポート
+
+from sklearn import tree                     # scikit-learn の決定木アルゴリズム
+from sklearn.metrics import accuracy_score, confusion_matrix  # 精度評価用
+import matplotlib.pyplot as plt               # グラフ描画ライブラリ
+
+# graphviz（決定木をきれいに可視化する外部ツール）も利用可能
+# ローカル環境なら以下のようにインストールして使用可能
+# !conda install python-graphviz --yes
+# from sklearn.tree import export_graphviz
+
+import itertools                              # 混同行列の可視化などでループ処理に利用
+```
+
+### **ポイント解説**
+
+1. **`from sklearn import tree`**
+
+   * scikit-learn に含まれる **決定木アルゴリズム**（分類や回帰に利用可能）を読み込みます。
+
+2. **`accuracy_score`, `confusion_matrix`**
+
+   * **accuracy\_score**：モデルがどれくらい正しく予測できたかを計算します（正解率）。
+   * **confusion\_matrix**：実際の値と予測値の比較表（分類モデルの性能評価に使用）。
+
+3. **`matplotlib.pyplot as plt`**
+
+   * データやモデルの結果を可視化するためのグラフ描画ライブラリです。
+
+4. **Graphviz 関連（コメントアウト部分）**
+
+   * Graphviz は決定木をわかりやすい図で表示できる外部ツール。
+   * ローカル環境で `conda install python-graphviz` すると `export_graphviz` 関数で利用可能。
+
+5. **`import itertools`**
+
+   * 繰り返し処理や組み合わせ処理を簡単に行えるPythonの標準ライブラリ。
+   * 特に混同行列のプロット時に座標の組み合わせ生成に使われます。
+
+---
+### 使用ライブラリについて
+
+- `scikit-learn` の `tree` モジュールを使い、決定木モデルを構築します。
+- モデルの性能評価に `accuracy_score`（正解率）と `confusion_matrix`（混同行列）を利用します。
+- 可視化には `matplotlib.pyplot` を使用します。
+- ローカル環境であれば、`graphviz` ライブラリを使って決定木をより詳細に可視化可能ですが、
+  ここではscikit-learn標準の `plot_tree` メソッドを使っています。
+- その他、ループ処理などの補助に `itertools` をインポートしています。
+
+```python
+from sklearn import tree
+from sklearn.metrics import accuracy_score, confusion_matrix
+import matplotlib.pyplot as plt
+
+# graphvizを使う場合は下記のコメントを外してインストールしてください
+# !conda install python-graphviz --yes
+# from sklearn.tree import export_graphviz
+
+import itertools
+
+```
+
+
+
+
 
