@@ -466,24 +466,24 @@ bamboo_test["cuisine"] で、そのデータの中の「料理ジャンル」列
 
 
 
-1. bamboo_test_index = bamboo.index.isin(bamboo_test.index)
+#### 1. bamboo_test_index = bamboo.index.isin(bamboo_test.index)
    
 bamboo.index.isin(bamboo_test.index) は、元データ bamboo の各行のインデックスが、
 サンプルで抽出したテストデータ bamboo_test のインデックスに含まれているかを真偽値（True/False）で返します。
 つまり、「元データの行がテスト用に抽出された行かどうか」の判定用のブール配列が作られます。
 
-2. bamboo_train = bamboo[~bamboo_test_index]
+#### 2. bamboo_train = bamboo[~bamboo_test_index]
    
 ~ は論理否定（True→False, False→True）を表します。
 つまり、元データの中でテスト用に抽出された行のインデックスは除外し、
 テストデータに選ばれていない残りの行だけを取り出し、訓練データ（bamboo_train）とする処理です。
 
-3. bamboo_train_ingredients = bamboo_train.iloc[:,1:]
+#### 3. bamboo_train_ingredients = bamboo_train.iloc[:,1:]
    
 訓練データ bamboo_train から、1列目（0始まりなので0はおそらくcuisine列）を除いた残りの列、
 つまり材料や特徴量の部分だけを抜き出して bamboo_train_ingredients に格納しています。
 
-4. bamboo_train_cuisines = bamboo_train["cuisine"]
+#### 4. bamboo_train_cuisines = bamboo_train["cuisine"]
    
 訓練データの中の料理ジャンル（ラベル）列だけを取り出して、bamboo_train_cuisines に格納しています。
 
